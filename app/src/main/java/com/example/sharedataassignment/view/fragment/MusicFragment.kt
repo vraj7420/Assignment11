@@ -18,7 +18,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -38,11 +37,9 @@ class MusicFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        getFileAccessPermission = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) {
+        getFileAccessPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK) {
-                if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     if (Environment.isExternalStorageManager()) {
                         loadMusic()
                     }
@@ -51,7 +48,7 @@ class MusicFragment : Fragment() {
         }
     }
 
-    private fun storagePermission() {
+    private fun checkStoragePermission() {
         if (isPermissionGranted()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 loadMusic()
@@ -61,8 +58,9 @@ class MusicFragment : Fragment() {
         }
     }
 
+
     private fun isPermissionGranted(): Boolean {
-        return if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
             val readExternalStorage = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -71,9 +69,10 @@ class MusicFragment : Fragment() {
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("Range")
     private fun loadMusic() {
+        viewMusic.pbWaiting.show()
+        musicList.clear()
         val cr: ContentResolver = context?.contentResolver!!
         val allSongsUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
@@ -90,13 +89,12 @@ class MusicFragment : Fragment() {
             }
             cursor.close()
         }
-        setAdapter()
+        setMusicAdapter()
     }
 
 
     private fun tackPermission() {
-
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                 intent.data = Uri.parse(String.format("package%s",requireContext().packageName))
@@ -115,9 +113,8 @@ class MusicFragment : Fragment() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == 101 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 loadMusic()
-            }
+
         } else {
             if (ActivityCompat.shouldShowRequestPermissionRationale(context as MainActivity, Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 return
@@ -130,19 +127,23 @@ class MusicFragment : Fragment() {
         }
     }
 
+
     override fun onResume() {
         super.onResume()
-        storagePermission()
+        checkStoragePermission()
     }
 
-     private fun setAdapter(){
+
+     private fun setMusicAdapter(){
          val musicAdapter=MusicAdapter(requireContext(),musicList)
          viewMusic.rvMusic?.layoutManager =LinearLayoutManager(requireContext())
          viewMusic.rvMusic.adapter=musicAdapter
+         viewMusic.pbWaiting.hide()
      }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         viewMusic=inflater.inflate(R.layout.fragment_music, container, false)
         return viewMusic
     }
+
 }

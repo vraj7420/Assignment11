@@ -3,8 +3,8 @@ package com.example.sharedataassignment.view.activity
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
-import com.example.sharedataassignment.adapter.FragmentAdapter
 import com.example.sharedataassignment.R
+import com.example.sharedataassignment.adapter.FragmentAdapter
 import com.google.android.material.tabs.TabLayout
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -30,14 +30,12 @@ class MainActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {
                 viewpager.currentItem = tabLayout.selectedTabPosition
             }
-
-
         })
+
         viewpager.registerOnPageChangeCallback(object :ViewPager2.OnPageChangeCallback(){
             override fun onPageSelected(position: Int) {
                 tabLayout.selectTab(tabLayout.getTabAt(position))
             }
-
         })
     }
 

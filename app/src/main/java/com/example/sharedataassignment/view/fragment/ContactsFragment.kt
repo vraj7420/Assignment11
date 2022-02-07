@@ -9,12 +9,14 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.ContactsContract
 import android.provider.Settings
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -34,56 +36,66 @@ class ContactsFragment : Fragment() {
     private lateinit var viewContact: View
 
     private fun checkReadContactPermission() {
-        if (ContextCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.READ_CONTACTS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                context as MainActivity,
-                arrayOf(Manifest.permission.READ_CONTACTS),
-                1
-            )
-        } else {
+        if (isPermissionsGranted()) {
             getContactList()
+        } else {
+            requestContactPermission()
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                getContactList()
-            }
-        } else {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    context as MainActivity,
-                    Manifest.permission.READ_CONTACTS
-                )
-            ) {
-                return
-            } else {
+    private fun requestContactPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ActivityCompat.requestPermissions(context as MainActivity,arrayOf(Manifest.permission.READ_CONTACTS), 100)
+        }
+    }
+
+    private fun isPermissionsGranted(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+        } else false
+    }
+
+    private fun checkUserRequestedDoNotAskAgain() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val rationalFlagREAD = shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
+            if (!rationalFlagREAD) {
+                Toast.makeText(requireContext(), "permission_deny_forcefully", Toast.LENGTH_SHORT).show()
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri: Uri = Uri.fromParts("package", requireContext().packageName, null)
+                val uri = Uri.fromParts("package", requireContext().packageName, null)
                 intent.data = uri
                 startActivity(intent)
             }
-
         }
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (grantResults.isNotEmpty()) {
+            if (requestCode == 100) {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getContactList()
+                } else {
+                    checkUserRequestedDoNotAskAgain()
+                }
+            }
+        }
+    }
+
+
     @SuppressLint("Range")
     private fun getContactList() {
+        contactList.clear()
+        viewContact.pbWaiting.visibility = View.VISIBLE
         val cr: ContentResolver = context?.contentResolver!!
         val sort = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
-        val cur: Cursor? = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, sort)
+        val cur: Cursor? =
+            cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, sort)
         var phoneNo: String
         if ((cur?.count ?: 0) > 0) {
             while (cur != null && cur.moveToNext()) {
-                val id: String = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID))
-                val name: String = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
+                val id: String =
+                    cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID))
+                val name: String =
+                    cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
                 if (cur.getInt(cur.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0) {
                     val photoIndex =
                         cur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
@@ -102,7 +114,14 @@ class ContactsFragment : Fragment() {
                         if (uri != null) {
                             contactList.add(ContactModel(name, phoneNo, uri))
                         } else {
-                            contactList.add(ContactModel(name, phoneNo, Uri.parse("android.resource://com.example.sharedataassignment/drawable/ic_person").toString()))
+                            contactList.add(
+                                ContactModel(
+                                    name,
+                                    phoneNo,
+                                    Uri.parse("android.resource://com.example.sharedataassignment/drawable/ic_person")
+                                        .toString()
+                                )
+                            )
                         }
                     }
                     phoneCur.close()
@@ -110,34 +129,31 @@ class ContactsFragment : Fragment() {
             }
         }
         cur?.close()
-        setAdapter()
-    }
+        Handler(Looper.getMainLooper()).postDelayed({
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        Log.d("onCreateView", "On Create")
+            setAdapter()
+        }, 5000)
+
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d("onResume", "On Resume")
         checkReadContactPermission()
-
     }
-    private  fun setAdapter(){
+
+    private fun setAdapter() {
         val contactAdapter = ContactAdapter(requireContext(), contactList)
         viewContact.rvContactsList.layoutManager = LinearLayoutManager(requireContext())
         viewContact.rvContactsList.adapter = contactAdapter
+        viewContact.pbWaiting.visibility = View.GONE
     }
 
-    override fun onPause() {
-        super.onPause()
-        Log.d("onPause", "On pause")
-    }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         viewContact = inflater.inflate(R.layout.fragment_contacts, container, false)
-        Log.d("onCreateView", "On Created")
         return viewContact
     }
 }

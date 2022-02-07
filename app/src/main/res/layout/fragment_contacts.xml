@@ -8,12 +8,13 @@
        android:layout_width="match_parent"
        android:layout_height="match_parent"
         android:id="@+id/rvContactsList"/>
-   <ProgressBar
+   <androidx.core.widget.ContentLoadingProgressBar
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
+       style="@android:style/Widget.ProgressBar.Large"
        android:id="@+id/pbWaiting"
+       android:visibility="gone"
        android:max="100"
-       android:visibility="visible"
        android:progress="0"
        android:indeterminate="true"
        app:layout_constraintTop_toTopOf="parent"
