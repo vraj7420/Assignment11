@@ -16,15 +16,12 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.sharedataassignment.R
 import com.example.sharedataassignment.adapter.ContactAdapter
 import com.example.sharedataassignment.model.ContactModel
-import com.example.sharedataassignment.view.activity.MainActivity
 import kotlinx.android.synthetic.main.fragment_contacts.view.*
 
 
@@ -45,7 +42,7 @@ class ContactsFragment : Fragment() {
 
     private fun requestContactPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ActivityCompat.requestPermissions(context as MainActivity,arrayOf(Manifest.permission.READ_CONTACTS), 100)
+            requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 100)
         }
     }
 
@@ -59,7 +56,6 @@ class ContactsFragment : Fragment() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val rationalFlagREAD = shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
             if (!rationalFlagREAD) {
-                Toast.makeText(requireContext(), "permission_deny_forcefully", Toast.LENGTH_SHORT).show()
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 val uri = Uri.fromParts("package", requireContext().packageName, null)
                 intent.data = uri
