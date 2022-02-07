@@ -7,4 +7,6 @@
     <string name="contact_name">Contact Name</string>
     <string name="song_name">Song Name</string>
     <string name="song_artist_name">Song Artist Name</string>
+    <string name="dialogTitle">"Permission Require "</string>
+    <string name="dialogMessageContact">In this App Run Contact Permission Require.That for Allow Permission, For Allow Press \"Yes\"</string>
 </resources>

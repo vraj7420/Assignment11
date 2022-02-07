@@ -31,6 +31,7 @@ class ContactsFragment : Fragment() {
     }
 
     private lateinit var viewContact: View
+    private  var rationalFlagREAD:Boolean=false
 
     private fun checkReadContactPermission() {
         if (isPermissionsGranted()) {
@@ -42,7 +43,7 @@ class ContactsFragment : Fragment() {
 
     private fun requestContactPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 100)
+            requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 1)
         }
     }
 
@@ -54,22 +55,25 @@ class ContactsFragment : Fragment() {
 
     private fun checkUserRequestedDoNotAskAgain() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val rationalFlagREAD = shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
             if (!rationalFlagREAD) {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri = Uri.fromParts("package", requireContext().packageName, null)
+                rationalFlagREAD=true
+                val intent = Intent()
+                intent.action=Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                val uri = Uri.fromParts("package", requireContext().packageName,null)
                 intent.data = uri
                 startActivity(intent)
+                return
             }
         }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (grantResults.isNotEmpty()) {
-            if (requestCode == 100) {
+            if (requestCode == 1) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     getContactList()
                 } else {
+                    rationalFlagREAD= shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
                     checkUserRequestedDoNotAskAgain()
                 }
             }
@@ -105,8 +109,7 @@ class ContactsFragment : Fragment() {
                     )
 
                     while (phoneCur!!.moveToNext()) {
-                        phoneNo =
-                            phoneCur.getString(phoneCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                        phoneNo = phoneCur.getString(phoneCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
                         if (uri != null) {
                             contactList.add(ContactModel(name, phoneNo, uri))
                         } else {
@@ -126,10 +129,14 @@ class ContactsFragment : Fragment() {
         }
         cur?.close()
         Handler(Looper.getMainLooper()).postDelayed({
-
             setAdapter()
         }, 5000)
+    }
 
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        checkReadContactPermission()
     }
 
     override fun onResume() {
@@ -144,11 +151,8 @@ class ContactsFragment : Fragment() {
         viewContact.pbWaiting.visibility = View.GONE
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         viewContact = inflater.inflate(R.layout.fragment_contacts, container, false)
         return viewContact
     }

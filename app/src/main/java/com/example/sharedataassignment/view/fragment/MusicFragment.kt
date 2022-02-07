@@ -133,6 +133,10 @@ class MusicFragment : Fragment() {
         checkStoragePermission()
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        checkStoragePermission()
+    }
 
      private fun setMusicAdapter(){
          val musicAdapter=MusicAdapter(requireContext(),musicList)
