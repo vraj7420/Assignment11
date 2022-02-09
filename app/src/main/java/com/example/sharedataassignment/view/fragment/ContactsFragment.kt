@@ -1,8 +1,10 @@
 package com.example.sharedataassignment.view.fragment
 
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -16,6 +18,7 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,19 +32,11 @@ class ContactsFragment : Fragment() {
     companion object {
         var contactList = ArrayList<ContactModel>()
     }
-
     private lateinit var viewContact: View
-    private  var rationalFlagREAD:Boolean=false
+   private var rationalFlagREAD: Boolean = false
+    private lateinit var  alertPermission:AlertDialog
 
-    private fun checkReadContactPermission() {
-        if (isPermissionsGranted()) {
-            getContactList()
-        } else {
-            requestContactPermission()
-        }
-    }
-
-    private fun requestContactPermission() {
+      private fun requestContactPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 1)
         }
@@ -53,33 +48,34 @@ class ContactsFragment : Fragment() {
         } else false
     }
 
-    private fun checkUserRequestedDoNotAskAgain() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!rationalFlagREAD) {
-                rationalFlagREAD=true
-                val intent = Intent()
-                intent.action=Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                val uri = Uri.fromParts("package", requireContext().packageName,null)
-                intent.data = uri
-                startActivity(intent)
-                return
-            }
-        }
+    private fun navigateToSettingScreen() {
+        val intent = Intent()
+        intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+        val uri = Uri.fromParts("package", requireContext().packageName, null)
+        intent.data = uri
+        startActivity(intent)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
         if (grantResults.isNotEmpty()) {
             if (requestCode == 1) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     getContactList()
                 } else {
-                    rationalFlagREAD= shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
-                    checkUserRequestedDoNotAskAgain()
+                    rationalFlagREAD = shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
+                    if (!rationalFlagREAD) {
+                        navigateToSettingScreen()
+                    }else{
+                        return
+                    }
                 }
             }
         }
     }
-
 
     @SuppressLint("Range")
     private fun getContactList() {
@@ -87,8 +83,7 @@ class ContactsFragment : Fragment() {
         viewContact.pbWaiting.visibility = View.VISIBLE
         val cr: ContentResolver = context?.contentResolver!!
         val sort = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
-        val cur: Cursor? =
-            cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, sort)
+        val cur: Cursor? = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, sort)
         var phoneNo: String
         if ((cur?.count ?: 0) > 0) {
             while (cur != null && cur.moveToNext()) {
@@ -109,7 +104,8 @@ class ContactsFragment : Fragment() {
                     )
 
                     while (phoneCur!!.moveToNext()) {
-                        phoneNo = phoneCur.getString(phoneCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                        phoneNo =
+                            phoneCur.getString(phoneCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER))
                         if (uri != null) {
                             contactList.add(ContactModel(name, phoneNo, uri))
                         } else {
@@ -117,8 +113,7 @@ class ContactsFragment : Fragment() {
                                 ContactModel(
                                     name,
                                     phoneNo,
-                                    Uri.parse("android.resource://com.example.sharedataassignment/drawable/ic_person")
-                                        .toString()
+                                    Uri.parse("android.resource://com.example.sharedataassignment/drawable/ic_person").toString()
                                 )
                             )
                         }
@@ -134,14 +129,14 @@ class ContactsFragment : Fragment() {
     }
 
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        checkReadContactPermission()
-    }
-
     override fun onResume() {
         super.onResume()
-        checkReadContactPermission()
+       if(isPermissionsGranted()){
+           alertPermission.dismiss()
+          getContactList()
+       }else{
+           alertPermission.show()
+       }
     }
 
     private fun setAdapter() {
@@ -151,9 +146,25 @@ class ContactsFragment : Fragment() {
         viewContact.pbWaiting.visibility = View.GONE
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        alertPermission=AlertDialog.Builder(requireContext())
+            .setMessage("Require Permission")
+            .setPositiveButton("Continue", ({ _: DialogInterface, _: Int ->
+                requestContactPermission()
+            })).setNegativeButton("Cancel",({ dialogInterface: DialogInterface, _: Int ->
+                dialogInterface.dismiss()
+            })).setCancelable(false)
+            .create()
+    }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         viewContact = inflater.inflate(R.layout.fragment_contacts, container, false)
         return viewContact
     }
+
 }

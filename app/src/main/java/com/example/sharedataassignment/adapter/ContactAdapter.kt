@@ -8,8 +8,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
-import com.example.sharedataassignment.model.ContactModel
 import com.example.sharedataassignment.R
+import com.example.sharedataassignment.model.ContactModel
 
 class ContactAdapter(private var ctx:Context,private var contactList:ArrayList<ContactModel>): RecyclerView.Adapter<ContactAdapter.ContactHolder>() {
 

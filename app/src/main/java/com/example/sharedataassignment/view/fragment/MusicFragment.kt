@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.content.ContentResolver
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -18,6 +19,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -33,6 +35,7 @@ class MusicFragment : Fragment() {
     private lateinit var getFileAccessPermission: ActivityResultLauncher<Intent>
     private  var musicList=ArrayList<MusicModel>()
     private lateinit var viewMusic:View
+    private lateinit var  alertPermission: AlertDialog
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,15 +51,6 @@ class MusicFragment : Fragment() {
         }
     }
 
-    private fun checkStoragePermission() {
-        if (isPermissionGranted()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                loadMusic()
-            }
-        } else {
-            tackPermission()
-        }
-    }
 
 
     private fun isPermissionGranted(): Boolean {
@@ -130,12 +124,24 @@ class MusicFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        checkStoragePermission()
+        if(isPermissionGranted()){
+            alertPermission.dismiss()
+            loadMusic()
+        }else{
+            alertPermission.show()
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        checkStoragePermission()
+        alertPermission=AlertDialog.Builder(requireContext())
+            .setMessage("Require Permission")
+            .setPositiveButton("Continue", ({ _: DialogInterface, _: Int ->
+                tackPermission()
+            })).setNegativeButton("Cancel",({ dialogInterface: DialogInterface, _: Int ->
+                dialogInterface.dismiss()
+            })).setCancelable(false)
+            .create()
     }
 
      private fun setMusicAdapter(){
